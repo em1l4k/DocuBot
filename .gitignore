@@ -1,0 +1,43 @@
+# --- виртуальные окружения / кэш ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- среда/секреты ---
+.env
+.env.*
+!.env.example
+
+# --- IDE ---
+.idea/
+.vscode/
+
+# --- ОС-мусор ---
+.DS_Store
+Thumbs.db
+
+# --- логи и временные файлы ---
+logs/
+*.log
+
+# --- загрузки пользователя (не в репо) ---
+uploads/
+
+# --- доступы (белый список) ---
+access/whitelist.csv
+
+# --- сборки/дистрибутивы ---
+build/
+dist/
+*.egg-info/
+
+# --- Docker (если появится) ---
+docker-compose.override.yml
+**/Dockerfile.*.local

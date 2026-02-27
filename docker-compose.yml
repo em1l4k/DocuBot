@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:15
+    container_name: docubot_postgres
+    environment:
+      POSTGRES_DB: docubot
+      POSTGRES_USER: docubot
+      POSTGRES_PASSWORD: docubot_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - docubot_network
+    restart: unless-stopped
+
+  # MinIO объектное хранилище
+  minio:
+    image: minio/minio:latest
+    container_name: docubot_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    networks:
+      - docubot_network
+    restart: unless-stopped
+
+  # DocuBot приложение
+  docubot:
+    build: .
+    container_name: docubot_app
+    environment:
+      # База данных
+      DATABASE_URL: postgresql+psycopg2://docubot:docubot_password@postgres:5432/docubot
+      
+      # MinIO
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: docubot
+      MINIO_SECURE: "false"
+      
+      # Bot
+      BOT_TOKEN: ${BOT_TOKEN}
+      WHITELIST_PATH: access/whitelist.csv
+      MAX_FILE_MB: 20
+      PRESIGN_TTL_MIN: 60
+      
+      # Логирование
+      LOG_LEVEL: INFO
+    volumes:
+      - ./access:/app/access
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - docubot_network
+    restart: unless-stopped
+
+  # Nginx (опционально, для проксирования)
+  nginx:
+    image: nginx:alpine
+    container_name: docubot_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - docubot
+    networks:
+      - docubot_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  docubot_network:
+    driver: bridge
